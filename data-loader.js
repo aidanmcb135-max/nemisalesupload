@@ -93,7 +93,7 @@ class DataLoader {
             }
 
             // 2. DETECT TRANSACTIONS
-            if (transactionDate && productSold) {
+            if (transactionDate && (productSold || amount !== 0)) {
                 // DATE PARSING: Handle Excel Dates vs String DD/MM/YYYY
                 let dateObj = transactionDate;
                 if (typeof transactionDate === 'string' && transactionDate.includes('/')) {
@@ -106,7 +106,7 @@ class DataLoader {
                 return {
                     customer: lastCustomer || 'Unknown',
                     transactionDate: dateObj,
-                    productSold,
+                    productSold: productSold || 'Other / Deposit',
                     quantity: parseNumber(quantity),
                     amount: parseNumber(amount)
                 };
