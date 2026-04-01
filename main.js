@@ -91,14 +91,19 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update Dashboard UI Elements
             updateDashboardMetrics(analyzer);
             
-            // Render the line Chart
+            // Render the line Chart and Volume Bar Chart
             const monthlyData = analyzer.getRevenueByMonth();
             chartManager.renderRevenueChart(monthlyData);
+            chartManager.renderVolumeChart(monthlyData);
             
             // Render Customer Chart
             const customerData = analyzer.getRevenueByCustomer();
             chartManager.renderCustomerChart(customerData);
             
+            // Render Product Donut Chart
+            const productData = analyzer.getRevenueByProduct();
+            chartManager.renderProductChart(productData);
+
             // Reveal the dashboard with a smooth scroll
             dashboard.classList.remove('hidden');
             dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -112,31 +117,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateDashboardMetrics(analyzer) {
-        const colFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+        // Formatting as GBP with no decimal places for clean UI matching the mockup
+        const colFormatter = new Intl.NumberFormat('en-GB', { 
+            style: 'currency', 
+            currency: 'GBP',
+            maximumFractionDigits: 0
+        });
 
         // Total Revenue
         document.getElementById('val-revenue').textContent = colFormatter.format(analyzer.getTotalRevenue());
+        const totalTx = analyzer.getTotalTransactions();
+        document.getElementById('sub-revenue').textContent = `${totalTx.toLocaleString()} orders processed`;
         
         // Best Sales Month (by Revenue)
         const bestMonth = analyzer.getBestSalesMonth();
-        document.getElementById('val-best-month').textContent = bestMonth.month !== '-' 
-            ? `${bestMonth.month}`
-            : '-';
-        
-        // Find Top Customer for the metric card
-        const customerStats = analyzer.getRevenueByCustomer();
-        if (customerStats.length > 0) {
-            const topCust = customerStats[0];
-            // We'll repurpose 'Peak Volume Month' subtitle or just show them in the card
-            // Actually let's just make sure Top Product and Best Month are clear
-        }
+        document.getElementById('val-best-month').textContent = bestMonth.month !== '-' ? bestMonth.month : '-';
+        document.getElementById('sub-best-month').textContent = `${colFormatter.format(bestMonth.revenue || 0)} revenue`;
         
         // Top Product (by Quantity)
         const topProduct = analyzer.getTopProduct();
         document.getElementById('val-top-product').textContent = topProduct.product;
+        document.getElementById('sub-top-product').textContent = `${(topProduct.quantity || 0).toLocaleString()} units sold`;
         
-        // Peak Volume Month (by Quantity Sold)
-        const peakMonth = analyzer.getPeakVolumeMonth();
-        document.getElementById('val-peak-volume-month').textContent = peakMonth.month;
+        // Total Customers
+        const totalCustomers = analyzer.getTotalCustomers();
+        document.getElementById('val-total-customers').textContent = totalCustomers.toLocaleString();
     }
 });

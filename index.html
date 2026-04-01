@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sales Intelligence</title>
+    <title>Sales Analytics | NEMI Teas</title>
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
     <!-- Chart.js & SheetJS -->
@@ -13,21 +13,34 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-    <div class="dashboard-container">
-        <header>
-            <h1>Sales Intelligence <span class="accent">Dashboard</span></h1>
-            <p>Upload your sales data to instantly generate insights.</p>
+    <div class="app-container">
+        <!-- Top Navigation -->
+        <header class="top-nav">
+            <div class="nav-left">
+                <div class="logo-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                </div>
+                <div class="nav-titles">
+                    <h1>NEMI Teas</h1>
+                    <span>SALES ANALYTICS</span>
+                </div>
+            </div>
+            <div class="nav-right">
+                <span class="nav-fy">FY 2025</span>
+                <span class="nav-date">Jan – Dec</span>
+            </div>
         </header>
 
-        <section class="upload-section">
+        <section class="upload-section" id="uploadSection">
             <div id="dropzone" class="dropzone">
-                <div class="upload-icon">📁</div>
-                <p>Drag & Drop your <strong>.xlsx</strong> file here</p>
-                <p class="sub-text">or click to browse</p>
+                <div class="upload-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                </div>
+                <p>Upload your <strong>.xlsx</strong> file to view analytics</p>
                 <input type="file" id="fileInput" accept=".xlsx, .xls" hidden>
             </div>
             <div id="uploadStatus" class="status-message"></div>
-
+            
             <div id="debugLog" class="debug-log hidden">
                 <div class="log-header">Process Logs</div>
                 <div id="logContent" class="log-content"></div>
@@ -37,43 +50,60 @@
         <section id="dashboard" class="dashboard-content hidden">
             <!-- Summary Cards -->
             <div class="metrics-grid">
-                <div class="metric-card">
-                    <div class="metric-title">Total Revenue</div>
-                    <div class="metric-value" id="val-revenue">$0.00</div>
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-title">TOTAL REVENUE</span>
+                        <div class="kpi-icon">£</div>
+                    </div>
+                    <div class="kpi-value" id="val-revenue">£0</div>
+                    <div class="kpi-subtitle" id="sub-revenue">0 orders processed</div>
                 </div>
-                <div class="metric-card">
-                    <div class="metric-title">Best Sales Month</div>
-                    <div class="metric-value" id="val-best-month">-</div>
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-title">MOST PROFITABLE MONTH</span>
+                        <div class="kpi-icon">↗</div>
+                    </div>
+                    <div class="kpi-value" id="val-best-month">-</div>
+                    <div class="kpi-subtitle" id="sub-best-month">£0 revenue</div>
                 </div>
-                <div class="metric-card">
-                    <div class="metric-title">Top Selling Product</div>
-                    <div class="metric-value highlight" id="val-top-product">-</div>
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-title">TOP SELLING PRODUCT</span>
+                        <div class="kpi-icon">★</div>
+                    </div>
+                    <div class="kpi-value" id="val-top-product">-</div>
+                    <div class="kpi-subtitle" id="sub-top-product">0 units sold</div>
                 </div>
-                <div class="metric-card">
-                    <div class="metric-title">Peak Volume Month</div>
-                    <div class="metric-value" id="val-peak-volume-month">-</div>
-                    <div class="metric-subtitle">Highest quantity of products sold</div>
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-title">TOTAL CUSTOMERS</span>
+                        <div class="kpi-icon">👥</div>
+                    </div>
+                    <div class="kpi-value" id="val-total-customers">0</div>
+                    <div class="kpi-subtitle">Active accounts</div>
                 </div>
             </div>
 
             <!-- Charts Section -->
-            <div class="charts-grid">
-                <div class="chart-card wide-chart">
-                    <div class="card-header">
-                        <h2>Revenue Over Time</h2>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="revenueChart"></canvas>
-                    </div>
-                </div>
-
+            <div class="charts-grid top-charts">
                 <div class="chart-card">
-                    <div class="card-header">
-                        <h2>Top Customers by Revenue</h2>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="customerChart"></canvas>
-                    </div>
+                    <div class="card-header">REVENUE BY MONTH</div>
+                    <div class="chart-container"><canvas id="revenueChart"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <div class="card-header">SALES VOLUME BY MONTH</div>
+                    <div class="chart-container"><canvas id="volumeChart"></canvas></div>
+                </div>
+            </div>
+
+            <div class="charts-grid bottom-charts">
+                <div class="chart-card">
+                    <div class="card-header">TOP CUSTOMERS BY REVENUE</div>
+                    <div class="chart-container"><canvas id="customerChart"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <div class="card-header">REVENUE BREAKDOWN BY PRODUCT</div>
+                    <div class="chart-container donut-container"><canvas id="productChart"></canvas></div>
                 </div>
             </div>
         </section>

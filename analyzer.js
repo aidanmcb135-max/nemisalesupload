@@ -5,18 +5,15 @@ class DataAnalyzer {
     constructor(data) {
         this.data = data;
         
-        // Ensure dates are parsed properly for grouping
+        // Setup Date and Month parsing
         this.data.forEach(row => {
             if (!(row.transactionDate instanceof Date)) {
-                // Try converting from string or Excel serial Number if cellDates failed
                 if (typeof row.transactionDate === 'number') {
-                    // Excel epoch offset
                     row.transactionDate = new Date(Math.round((row.transactionDate - 25569) * 86400 * 1000));
                 } else {
                     row.transactionDate = new Date(row.transactionDate);
                 }
             }
-            // Format month string roughly like "2023-01" for sorting, and "Jan 2023" for display
             const d = row.transactionDate;
             if (!isNaN(d.getTime())) {
                 row.monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -32,6 +29,10 @@ class DataAnalyzer {
         return this.data.reduce((sum, row) => sum + row.amount, 0);
     }
 
+    getTotalTransactions() {
+        return this.data.length;
+    }
+
     getRevenueByMonth() {
         const monthly = {};
         this.data.forEach(row => {
@@ -43,7 +44,6 @@ class DataAnalyzer {
             monthly[row.monthKey].quantity += row.quantity;
         });
 
-        // Sort chronologically ascending
         return Object.keys(monthly).sort().map(key => ({
             month: monthly[key].label,
             revenue: monthly[key].revenue,
@@ -54,26 +54,16 @@ class DataAnalyzer {
     getBestSalesMonth() {
         const monthly = this.getRevenueByMonth();
         if (monthly.length === 0) return { month: '-', revenue: 0 };
-        
-        return monthly.reduce((best, current) => 
-            current.revenue > best.revenue ? current : best
-        , monthly[0]);
-    }
-
-    getPeakVolumeMonth() {
-        const monthly = this.getRevenueByMonth();
-        if (monthly.length === 0) return { month: '-', quantity: 0 };
-        
-        return monthly.reduce((best, current) => 
-            current.quantity > best.quantity ? current : best
-        , monthly[0]);
+        return monthly.reduce((best, current) => current.revenue > best.revenue ? current : best, monthly[0]);
     }
 
     getTopProduct() {
         const products = {};
         this.data.forEach(row => {
-            if (!row.productSold) return;
-            const prodText = String(row.productSold).trim();
+            const prodText = String(row.productSold || 'Unknown').trim();
+            // Don't count Deposits for Top Product
+            if (prodText === 'Other / Deposit') return;
+            
             if (!products[prodText]) products[prodText] = { quantity: 0, revenue: 0 };
             products[prodText].quantity += row.quantity;
             products[prodText].revenue += row.amount;
@@ -81,15 +71,31 @@ class DataAnalyzer {
 
         let topProduct = '-';
         let maxQty = 0;
+        let revenueObj = 0;
 
         for (const [product, stats] of Object.entries(products)) {
             if (stats.quantity > maxQty) {
                 maxQty = stats.quantity;
                 topProduct = product;
+                revenueObj = stats.revenue;
             }
         }
+        return { product: topProduct, quantity: maxQty, revenue: revenueObj };
+    }
 
-        return { product: topProduct, quantity: maxQty };
+    getRevenueByProduct() {
+        const products = {};
+        this.data.forEach(row => {
+            const prodText = String(row.productSold || 'Unknown').trim();
+            // Optional: Exclude 'Other / Deposit' from the product pie chart if desired,
+            // but we'll include it so the pie exactly matches total revenue.
+            if (!products[prodText]) products[prodText] = 0;
+            products[prodText] += row.amount;
+        });
+
+        return Object.keys(products)
+            .map(name => ({ product: name, revenue: products[name] }))
+            .sort((a, b) => b.revenue - a.revenue);
     }
 
     getRevenueByCustomer() {
@@ -100,9 +106,13 @@ class DataAnalyzer {
             customers[name] += row.amount;
         });
 
-        // Convert to sorted array
         return Object.keys(customers)
             .map(name => ({ name, revenue: customers[name] }))
             .sort((a, b) => b.revenue - a.revenue);
+    }
+
+    getTotalCustomers() {
+        const customerList = this.getRevenueByCustomer();
+        return customerList.length;
     }
 }
