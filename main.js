@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error(error);
-            uploadStatus.textContent = "There was an error parsing the file. Please check console for details.";
+            uploadStatus.textContent = `Error: ${error.message}`;
             uploadStatus.style.color = '#ef4444'; // Error Red
         }
     }
