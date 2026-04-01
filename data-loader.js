@@ -46,10 +46,14 @@ class DataLoader {
     static cleanAndFilterData(rawData, logger = console.log) {
         let lastCustomer = null;
 
-        const mapped = rawData.map((row, index) => {
+        const mapped = rawData.map((row) => {
+            const keys = Object.keys(row);
+            const firstColKey = keys.length > 0 ? keys[0] : null;
+            const firstColVal = firstColKey ? row[firstColKey] : null;
+
             // Find keys case-insensitively using a helper
             const getVal = (possibleKeys) => {
-                const key = Object.keys(row).find(k =>
+                const key = keys.find(k =>
                     possibleKeys.some(pk => k.toLowerCase().includes(pk.toLowerCase()))
                 );
                 return key ? row[key] : null;
@@ -65,62 +69,58 @@ class DataLoader {
                 return 0;
             };
 
-            let customer = getVal(['customer', 'client', 'name']);
             const transactionDate = getVal(['transaction date', 'date', 'trans date']);
             const productSold = getVal(['product/service', 'product', 'item']);
             const quantity = getVal(['quantity', 'qty']);
             const amount = getVal(['amount', 'revenue', 'value']);
 
-            // IGNORE rows that are clearly subtotals or empty filler
+            const firstColStr = String(firstColVal || '').trim();
+
+            // 1. DETECT CUSTOMER NAME ROWS: 
+            // In the sheet, a new customer is a row where the first column has a name but there's no date.
+            if (firstColStr && !transactionDate) {
+                if (firstColStr.toLowerCase().startsWith('total')) {
+                    return null;
+                }
+                lastCustomer = firstColStr;
+                return null; // Don't count the name row as a sale
+            }
+
+            // IGNORE rows that are subtotals or lack a valid product
             const rowString = JSON.stringify(row).toLowerCase();
-            if (rowString.includes("total") && !productSold) {
+            if (firstColStr.toLowerCase().startsWith("total") || (rowString.includes("total") && !productSold)) {
                 return null;
             }
 
-            // FORWARD FILL CUSTOMER
-            if (customer && String(customer).trim().length > 0) {
-                lastCustomer = String(customer).trim();
-            } else if (transactionDate) {
-                customer = lastCustomer;
-            }
-
-            // DATE PARSING: Handle Excel Dates vs String DD/MM/YYYY
-            let dateObj = transactionDate;
-            if (typeof transactionDate === 'string' && transactionDate.includes('/')) {
-                const parts = transactionDate.split('/');
-                if (parts.length === 3) {
-                    // Create date from DD/MM/YYYY
-                    dateObj = new Date(parts[2], parts[1] - 1, parts[0]);
+            // 2. DETECT TRANSACTIONS
+            if (transactionDate && productSold) {
+                // DATE PARSING: Handle Excel Dates vs String DD/MM/YYYY
+                let dateObj = transactionDate;
+                if (typeof transactionDate === 'string' && transactionDate.includes('/')) {
+                    const parts = transactionDate.split('/');
+                    if (parts.length === 3) {
+                        dateObj = new Date(parts[2], parts[1] - 1, parts[0]);
+                    }
                 }
+
+                return {
+                    customer: lastCustomer || 'Unknown',
+                    transactionDate: dateObj,
+                    productSold,
+                    quantity: parseNumber(quantity),
+                    amount: parseNumber(amount)
+                };
             }
 
-            return {
-                customer: customer || 'Unknown',
-                transactionDate: dateObj,
-                productSold,
-                quantity: parseNumber(quantity),
-                amount: parseNumber(amount)
-            };
+            return null;
         }).filter(r => r !== null);
 
-        const filtered = mapped.filter((row, index) => {
-            const hasDate = !!row.transactionDate;
-            const hasProduct = !!row.productSold;
-
-            if (!hasDate || !hasProduct) {
-                if (index < 5 && rawData.length > 5) {
-                    console.warn(`Row ${index} missing required fields:`, { hasDate, hasProduct });
-                }
-            }
-            return hasDate && hasProduct;
-        });
-
-        if (filtered.length === 0 && rawData.length > 0) {
+        if (mapped.length === 0 && rawData.length > 0) {
             // Check first row keys to help user debug headers
             const sampleKeys = Object.keys(rawData[0]).join(", ");
-            throw new Error(`No valid sales data found starting at Row 5. We found these headers: [${sampleKeys}]. Please make sure columns like "Transaction Date" and "Product Sold" are on Row 5.`);
+            throw new Error(`Data mapping failed. Headers found: [${sampleKeys}]. Please ensure "Transaction Date" and "Product/Service" are columns on Row 5.`);
         }
 
-        return filtered;
+        return mapped;
     }
 }
