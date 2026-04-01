@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Intelligence</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- Chart.js & SheetJS -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header>
+            <h1>Sales Intelligence <span class="accent">Dashboard</span></h1>
+            <p>Upload your sales data to instantly generate insights.</p>
+        </header>
+
+        <section class="upload-section">
+            <div id="dropzone" class="dropzone">
+                <div class="upload-icon">📁</div>
+                <p>Drag & Drop your <strong>.xlsx</strong> file here</p>
+                <p class="sub-text">or click to browse</p>
+                <input type="file" id="fileInput" accept=".xlsx, .xls" hidden>
+            </div>
+            <div id="uploadStatus" class="status-message"></div>
+        </section>
+
+        <section id="dashboard" class="dashboard-content hidden">
+            <!-- Summary Cards -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-title">Total Revenue</div>
+                    <div class="metric-value" id="val-revenue">$0.00</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Best Sales Month</div>
+                    <div class="metric-value" id="val-best-month">-</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Top Selling Product</div>
+                    <div class="metric-value highlight" id="val-top-product">-</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Peak Volume Month</div>
+                    <div class="metric-value" id="val-peak-volume-month">-</div>
+                    <div class="metric-subtitle">Highest quantity of products sold</div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="charts-grid">
+                <div class="chart-card wide-chart">
+                    <div class="card-header">
+                        <h2>Revenue Over Time</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Scripts -->
+    <script src="data-loader.js"></script>
+    <script src="analyzer.js"></script>
+    <script src="charts.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
