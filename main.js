@@ -206,7 +206,9 @@ document.addEventListener('DOMContentLoaded', () => {
             let content = `<td><strong>${row.customer}</strong></td>`;
             freqData.months.forEach(m => {
                 const count = row[m.key] || 0;
-                content += `<td>${count === 0 ? '-' : count}</td>`;
+                content += count === 0 
+                    ? `<td class="cell-zero">-</td>` 
+                    : `<td>${count}</td>`;
             });
             content += `<td class="total-col">${row.total}</td>`;
             tr.innerHTML = content;
