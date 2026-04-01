@@ -18,93 +18,64 @@ document.addEventListener('DOMContentLoaded', () => {
         debugLog.classList.remove('hidden');
     }
 
-    // Initialize the chart manager
     const chartManager = new ChartManager();
 
-    // Setup drag and drop events
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropzone.addEventListener(eventName, preventDefaults, false);
-    });
+    // Drag and drop setup
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => dropzone.addEventListener(eventName, preventDefaults, false));
+    function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
 
-    function preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
+    ['dragenter', 'dragover'].forEach(eventName => dropzone.addEventListener(eventName, () => dropzone.classList.add('dragover'), false));
+    ['dragleave', 'drop'].forEach(eventName => dropzone.addEventListener(eventName, () => dropzone.classList.remove('dragover'), false));
 
-    ['dragenter', 'dragover'].forEach(eventName => {
-        dropzone.addEventListener(eventName, () => dropzone.classList.add('dragover'), false);
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-        dropzone.addEventListener(eventName, () => dropzone.classList.remove('dragover'), false);
-    });
-
-    // Handle File Drop
     dropzone.addEventListener('drop', (e) => {
         const dt = e.dataTransfer;
         const files = dt.files;
         if (files.length) handleFiles(files[0]);
     });
 
-    // Handle File Browse Click
-    dropzone.addEventListener('click', () => {
-        fileInput.click();
-    });
-
-    fileInput.addEventListener('change', function() {
-        if (this.files.length) handleFiles(this.files[0]);
-    });
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', function() { if (this.files.length) handleFiles(this.files[0]); });
 
     async function handleFiles(file) {
-        // Basic extension validation
         if (!file.name.match(/\.(xlsx|xls)$/)) {
             uploadStatus.textContent = "Error: Please upload a valid Excel file (.xlsx or .xls)";
-            uploadStatus.style.color = '#ef4444'; // Error Red
+            uploadStatus.style.color = '#ef4444';
             return;
         }
 
         uploadStatus.textContent = "Processing and analyzing your data...";
-        uploadStatus.style.color = '#10b981'; // Green
+        uploadStatus.style.color = '#10b981';
 
         try {
             log(`Starting process for: ${file.name}`);
-            
-            if (typeof XLSX === 'undefined') {
-                throw new Error("System Error: Spreadsheet library (SheetJS) failed to load. Please check your internet connection.");
-            }
+            if (typeof XLSX === 'undefined') throw new Error("Spreadsheet library (SheetJS) failed to load.");
 
-            // Load and filter the Excel data
             log("Reading file into memory...");
             const rawData = await DataLoader.parseExcelFile(file, log);
-            
-            if (rawData.length === 0) {
-                throw new Error("No valid data found. Please ensure headers match expectations.");
-            }
+            if (rawData.length === 0) throw new Error("No valid data found.");
 
-            log(`Filtering complete. Analyzing ${rawData.length} valid sales records...`, 'success');
-
+            log(`Analyzing ${rawData.length} valid sales records...`, 'success');
             uploadStatus.textContent = `Successfully processed ${rawData.length} rows.`;
             
-            // Analyze the cleaned Data
             const analyzer = new DataAnalyzer(rawData);
             
-            // Update Dashboard UI Elements
+            // 1. Dashboard Metrics
             updateDashboardMetrics(analyzer);
             
-            // Render the line Chart and Volume Bar Chart
-            const monthlyData = analyzer.getRevenueByMonth();
-            chartManager.renderRevenueChart(monthlyData);
-            chartManager.renderVolumeChart(monthlyData);
-            
-            // Render Customer Chart
-            const customerData = analyzer.getRevenueByCustomer();
-            chartManager.renderCustomerChart(customerData);
-            
-            // Render Product Donut Chart
-            const productData = analyzer.getRevenueByProduct();
-            chartManager.renderProductChart(productData);
+            // 2. Main Charts
+            chartManager.renderRevenueChart(analyzer.getRevenueByMonth());
+            chartManager.renderVolumeChart(analyzer.getVolumeByQuarter());
+            chartManager.renderCustomerChart(analyzer.getRevenueByCustomer());
+            chartManager.renderProductChart(analyzer.getRevenueByProduct());
 
-            // Reveal the dashboard with a smooth scroll
+            // 3. Boss V2 Charts
+            chartManager.renderTop20Products(analyzer.getTopProductsByQuantity(20));
+            chartManager.renderTop10Trends(analyzer.getTop10ProductTrends());
+
+            // 4. Tables and Lists
+            renderFrequencyTable(analyzer.getCustomerFrequencyTable());
+            renderChurnLists(analyzer.getChurnedCustomers());
+
             dashboard.classList.remove('hidden');
             dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -112,35 +83,75 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error(error);
             log(`ERROR: ${error.message}`, 'error');
             uploadStatus.textContent = `Error: ${error.message}`;
-            uploadStatus.style.color = '#ef4444'; // Error Red
+            uploadStatus.style.color = '#ef4444';
         }
     }
 
     function updateDashboardMetrics(analyzer) {
-        // Formatting as GBP with no decimal places for clean UI matching the mockup
-        const colFormatter = new Intl.NumberFormat('en-GB', { 
-            style: 'currency', 
-            currency: 'GBP',
-            maximumFractionDigits: 0
-        });
+        const colFormatter = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 });
 
-        // Total Revenue
         document.getElementById('val-revenue').textContent = colFormatter.format(analyzer.getTotalRevenue());
-        const totalTx = analyzer.getTotalTransactions();
-        document.getElementById('sub-revenue').textContent = `${totalTx.toLocaleString()} orders processed`;
+        document.getElementById('sub-revenue').textContent = `${analyzer.getTotalTransactions().toLocaleString()} orders processed`;
         
-        // Best Sales Month (by Revenue)
         const bestMonth = analyzer.getBestSalesMonth();
         document.getElementById('val-best-month').textContent = bestMonth.month !== '-' ? bestMonth.month : '-';
         document.getElementById('sub-best-month').textContent = `${colFormatter.format(bestMonth.revenue || 0)} revenue`;
         
-        // Top Product (by Quantity)
-        const topProduct = analyzer.getTopProduct();
+        const topProduct = analyzer.getTopProductsByQuantity(1)[0] || { product: '-', quantity: 0 };
         document.getElementById('val-top-product').textContent = topProduct.product;
         document.getElementById('sub-top-product').textContent = `${(topProduct.quantity || 0).toLocaleString()} units sold`;
         
-        // Total Customers
-        const totalCustomers = analyzer.getTotalCustomers();
-        document.getElementById('val-total-customers').textContent = totalCustomers.toLocaleString();
+        document.getElementById('val-total-customers').textContent = analyzer.getTotalCustomers().toLocaleString();
+    }
+
+    function renderFrequencyTable(freqData) {
+        const table = document.getElementById('frequencyTable');
+        table.innerHTML = '';
+
+        // Build Header
+        const thead = document.createElement('thead');
+        let headerRow = '<tr><th>Customer</th>';
+        freqData.months.forEach(m => {
+            headerRow += `<th>${m.label.split(' ')[0]}</th>`; // Show just the month name to save space
+        });
+        headerRow += '<th class="total-col">Total</th></tr>';
+        thead.innerHTML = headerRow;
+        table.appendChild(thead);
+
+        // Build Body
+        const tbody = document.createElement('tbody');
+        freqData.data.forEach(row => {
+            let tr = document.createElement('tr');
+            let content = `<td><strong>${row.customer}</strong></td>`;
+            freqData.months.forEach(m => {
+                const count = row[m.key] || 0;
+                content += `<td>${count === 0 ? '-' : count}</td>`;
+            });
+            content += `<td class="total-col">${row.total}</td>`;
+            tr.innerHTML = content;
+            tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+    }
+
+    function renderChurnLists(churnData) {
+        const list90 = document.getElementById('churn90List');
+        const list60 = document.getElementById('churn60List');
+        
+        list90.innerHTML = '';
+        list60.innerHTML = '';
+
+        if (churnData.churned90.length === 0) list90.innerHTML = '<div class="no-data-msg">No high-risk accounts found.</div>';
+        if (churnData.churned60.length === 0) list60.innerHTML = '<div class="no-data-msg">No dormant accounts found.</div>';
+
+        churnData.churned90.forEach(c => {
+            const dateStr = c.lastOrder.toLocaleDateString();
+            list90.innerHTML += `<div class="churn-item"><span class="churn-name">${c.customer}</span><span class="churn-days">${c.daysSince} days ago (${dateStr})</span></div>`;
+        });
+
+        churnData.churned60.forEach(c => {
+            const dateStr = c.lastOrder.toLocaleDateString();
+            list60.innerHTML += `<div class="churn-item"><span class="churn-name">${c.customer}</span><span class="churn-days">${c.daysSince} days ago (${dateStr})</span></div>`;
+        });
     }
 });

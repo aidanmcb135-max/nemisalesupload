@@ -70,9 +70,11 @@ class DataLoader {
             };
 
             const transactionDate = getVal(['transaction date', 'date', 'trans date']);
-            const productSold = getVal(['product/service', 'product', 'item']);
+            // User requested to use Memo/Description instead of Product/Service for the product name
+            const productSold = getVal(['memo/description', 'memo', 'description', 'product/service', 'product', 'item']);
             const quantity = getVal(['quantity', 'qty']);
             const amount = getVal(['amount', 'revenue', 'value']);
+            const invoiceNo = String(getVal(['no.', 'invoice', 'inv']) || '').trim();
 
             const firstColStr = String(firstColVal || '').trim();
 
@@ -108,7 +110,8 @@ class DataLoader {
                     transactionDate: dateObj,
                     productSold: productSold || 'Other / Deposit',
                     quantity: parseNumber(quantity),
-                    amount: parseNumber(amount)
+                    amount: parseNumber(amount),
+                    invoiceNo: invoiceNo || 'Unknown'
                 };
             }
 

@@ -4,6 +4,7 @@
 class DataAnalyzer {
     constructor(data) {
         this.data = data;
+        this.maxDate = new Date(0);
         
         // Setup Date and Month parsing
         this.data.forEach(row => {
@@ -16,22 +17,26 @@ class DataAnalyzer {
             }
             const d = row.transactionDate;
             if (!isNaN(d.getTime())) {
+                if (d > this.maxDate) this.maxDate = d;
+
                 row.monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                 row.monthLabel = d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+                
+                // Quarter logic
+                const q = Math.floor(d.getMonth() / 3) + 1;
+                row.quarterKey = `${d.getFullYear()}-Q${q}`;
+                row.quarterLabel = `Q${q} ${d.getFullYear()}`;
             } else {
                 row.monthKey = 'Unknown';
                 row.monthLabel = 'Unknown';
+                row.quarterKey = 'Unknown';
+                row.quarterLabel = 'Unknown';
             }
         });
     }
 
-    getTotalRevenue() {
-        return this.data.reduce((sum, row) => sum + row.amount, 0);
-    }
-
-    getTotalTransactions() {
-        return this.data.length;
-    }
+    getTotalRevenue() { return this.data.reduce((sum, row) => sum + row.amount, 0); }
+    getTotalTransactions() { return this.data.length; }
 
     getRevenueByMonth() {
         const monthly = {};
@@ -46,8 +51,25 @@ class DataAnalyzer {
 
         return Object.keys(monthly).sort().map(key => ({
             month: monthly[key].label,
+            monthKey: key,
             revenue: monthly[key].revenue,
             quantity: monthly[key].quantity
+        }));
+    }
+
+    getVolumeByQuarter() {
+        const quarters = {};
+        this.data.forEach(row => {
+            if (row.quarterKey === 'Unknown') return;
+            if (!quarters[row.quarterKey]) {
+                quarters[row.quarterKey] = { label: row.quarterLabel, quantity: 0 };
+            }
+            quarters[row.quarterKey].quantity += row.quantity;
+        });
+
+        return Object.keys(quarters).sort().map(key => ({
+            quarter: quarters[key].label,
+            quantity: quarters[key].quantity
         }));
     }
 
@@ -57,38 +79,63 @@ class DataAnalyzer {
         return monthly.reduce((best, current) => current.revenue > best.revenue ? current : best, monthly[0]);
     }
 
-    getTopProduct() {
+    getTopProductsByQuantity(limit = 20) {
         const products = {};
         this.data.forEach(row => {
             const prodText = String(row.productSold || 'Unknown').trim();
-            // Don't count Deposits for Top Product
-            if (prodText === 'Other / Deposit') return;
+            if (prodText === 'Other / Deposit' || !prodText) return;
             
-            if (!products[prodText]) products[prodText] = { quantity: 0, revenue: 0 };
-            products[prodText].quantity += row.quantity;
-            products[prodText].revenue += row.amount;
+            if (!products[prodText]) products[prodText] = 0;
+            products[prodText] += row.quantity;
         });
 
-        let topProduct = '-';
-        let maxQty = 0;
-        let revenueObj = 0;
+        return Object.keys(products)
+            .map(name => ({ product: name, quantity: products[name] }))
+            .sort((a, b) => b.quantity - a.quantity)
+            .slice(0, limit);
+    }
 
-        for (const [product, stats] of Object.entries(products)) {
-            if (stats.quantity > maxQty) {
-                maxQty = stats.quantity;
-                topProduct = product;
-                revenueObj = stats.revenue;
+    getTop10ProductTrends() {
+        // 1. Get Top 10 Products by Quantity
+        const top10 = this.getTopProductsByQuantity(10).map(p => p.product);
+        
+        // 2. Get all distinct sorted months
+        const allMonths = this.getRevenueByMonth().map(m => m.monthKey);
+        
+        // 3. Initialize mapping array for each product
+        const trends = {};
+        top10.forEach(p => {
+            trends[p] = {};
+            allMonths.forEach(m => trends[p][m] = 0);
+        });
+
+        // 4. Fill with quantities
+        this.data.forEach(row => {
+            const prodText = String(row.productSold || 'Unknown').trim();
+            if (top10.includes(prodText) && row.monthKey !== 'Unknown') {
+                trends[prodText][row.monthKey] += row.quantity;
             }
-        }
-        return { product: topProduct, quantity: maxQty, revenue: revenueObj };
+        });
+
+        // 5. Convert to Chart.js dataset format
+        // Return months (labels) and datasets
+        const datasets = top10.map(productName => {
+            return {
+                label: productName,
+                data: allMonths.map(mKey => trends[productName][mKey])
+            };
+        });
+
+        return {
+            labels: this.getRevenueByMonth().map(m => m.month),
+            datasets: datasets
+        };
     }
 
     getRevenueByProduct() {
         const products = {};
         this.data.forEach(row => {
             const prodText = String(row.productSold || 'Unknown').trim();
-            // Optional: Exclude 'Other / Deposit' from the product pie chart if desired,
-            // but we'll include it so the pie exactly matches total revenue.
             if (!products[prodText]) products[prodText] = 0;
             products[prodText] += row.amount;
         });
@@ -112,7 +159,76 @@ class DataAnalyzer {
     }
 
     getTotalCustomers() {
-        const customerList = this.getRevenueByCustomer();
-        return customerList.length;
+        return this.getRevenueByCustomer().length;
+    }
+
+    getCustomerFrequencyTable() {
+        // We want to count UNIQUE invoices per customer per month
+        const frequencyMap = {};
+        
+        this.data.forEach(row => {
+            const customer = row.customer || 'Unknown';
+            const mKey = row.monthKey;
+            const invoice = row.invoiceNo;
+
+            if (mKey === 'Unknown' || !invoice) return;
+
+            if (!frequencyMap[customer]) frequencyMap[customer] = {};
+            if (!frequencyMap[customer][mKey]) frequencyMap[customer][mKey] = new Set();
+            
+            frequencyMap[customer][mKey].add(invoice);
+        });
+
+        const allMonths = this.getRevenueByMonth().map(m => ({ label: m.month, key: m.monthKey }));
+        
+        const tableData = Object.keys(frequencyMap).map(customer => {
+            const rowObj = { customer };
+            let totalInvoices = 0;
+            allMonths.forEach(m => {
+                const count = frequencyMap[customer][m.key] ? frequencyMap[customer][m.key].size : 0;
+                rowObj[m.key] = count;
+                totalInvoices += count;
+            });
+            rowObj.total = totalInvoices;
+            return rowObj;
+        });
+
+        return {
+            months: allMonths,
+            data: tableData.sort((a, b) => b.total - a.total)
+        };
+    }
+
+    getChurnedCustomers() {
+        const customerDates = {};
+        this.data.forEach(row => {
+            const customer = row.customer || 'Unknown';
+            const d = row.transactionDate;
+            if (isNaN(d.getTime())) return;
+            
+            if (!customerDates[customer] || d > customerDates[customer]) {
+                customerDates[customer] = d;
+            }
+        });
+
+        // Max date in the dataset (represents "today" for the sheet)
+        const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+        const churned60 = [];
+        const churned90 = [];
+
+        Object.keys(customerDates).forEach(customer => {
+            const diffDays = Math.floor((this.maxDate - customerDates[customer]) / MS_PER_DAY);
+            if (diffDays >= 90) {
+                churned90.push({ customer, lastOrder: customerDates[customer], daysSince: diffDays });
+            } else if (diffDays >= 60) {
+                churned60.push({ customer, lastOrder: customerDates[customer], daysSince: diffDays });
+            }
+        });
+
+        return {
+            churned60: churned60.sort((a,b) => b.daysSince - a.daysSince),
+            churned90: churned90.sort((a,b) => b.daysSince - a.daysSince)
+        };
     }
 }
