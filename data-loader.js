@@ -2,31 +2,31 @@
  * Handles file reading and parsing using SheetJS
  */
 class DataLoader {
-    static async parseExcelFile(file) {
+    static async parseExcelFile(file, logger = console.log) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
 
             reader.onload = (e) => {
                 try {
+                    logger("Parsing spreadsheet structure...");
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array', cellDates: true });
 
                     // Assume the first sheet contains the data
                     const firstSheetName = workbook.SheetNames[0];
+                    logger(`Sheet found: "${firstSheetName}". Converting to JSON...`);
                     const worksheet = workbook.Sheets[firstSheetName];
 
                     // Convert to JSON
                     const rawJson = XLSX.utils.sheet_to_json(worksheet, { defval: null });
-                    console.log("Raw JSON rows found:", rawJson.length);
+                    logger(`Found ${rawJson.length} raw rows. Starting column filtering...`);
 
                     if (rawJson.length === 0) {
                         throw new Error("The spreadsheet appears to be empty.");
                     }
 
                     // Normalize and filter the data according to requirements
-                    const cleanedData = this.cleanAndFilterData(rawJson);
-                    console.log("Cleaned rows after filtering:", cleanedData.length);
-
+                    const cleanedData = this.cleanAndFilterData(rawJson, logger);
                     resolve(cleanedData);
                 } catch (error) {
                     reject(error);
@@ -41,8 +41,8 @@ class DataLoader {
         });
     }
 
-    static cleanAndFilterData(rawData) {
-        return rawData.map(row => {
+    static cleanAndFilterData(rawData, logger = console.log) {
+        const mapped = rawData.map(row => {
             // Find keys case-insensitively using a helper
             const getVal = (possibleKeys) => {
                 const key = Object.keys(row).find(k =>

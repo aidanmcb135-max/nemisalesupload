@@ -6,7 +6,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('fileInput');
     const uploadStatus = document.getElementById('uploadStatus');
     const dashboard = document.getElementById('dashboard');
+    const debugLog = document.getElementById('debugLog');
+    const logContent = document.getElementById('logContent');
     
+    function log(message, type = 'info') {
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        logContent.appendChild(entry);
+        logContent.scrollTop = logContent.scrollHeight;
+        debugLog.classList.remove('hidden');
+    }
+
     // Initialize the chart manager
     const chartManager = new ChartManager();
 
@@ -56,12 +67,21 @@ document.addEventListener('DOMContentLoaded', () => {
         uploadStatus.style.color = '#10b981'; // Green
 
         try {
+            log(`Starting process for: ${file.name}`);
+            
+            if (typeof XLSX === 'undefined') {
+                throw new Error("System Error: Spreadsheet library (SheetJS) failed to load. Please check your internet connection.");
+            }
+
             // Load and filter the Excel data
-            const rawData = await DataLoader.parseExcelFile(file);
+            log("Reading file into memory...");
+            const rawData = await DataLoader.parseExcelFile(file, log);
             
             if (rawData.length === 0) {
-                throw new Error("No valid data found. Please ensure headers match expectations (Transaction Date, Product Sold, etc.)");
+                throw new Error("No valid data found. Please ensure headers match expectations.");
             }
+
+            log(`Filtering complete. Analyzing ${rawData.length} valid sales records...`, 'success');
 
             uploadStatus.textContent = `Successfully processed ${rawData.length} rows.`;
             
@@ -81,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error(error);
+            log(`ERROR: ${error.message}`, 'error');
             uploadStatus.textContent = `Error: ${error.message}`;
             uploadStatus.style.color = '#ef4444'; // Error Red
         }

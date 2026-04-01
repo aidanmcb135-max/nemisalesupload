@@ -48,6 +48,7 @@ h1 {
 .accent {
     background: linear-gradient(135deg, var(--accent-secondary), var(--accent));
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -215,3 +216,38 @@ header p {
         padding: 2rem 1rem;
     }
 }
+
+.debug-log {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 600px;
+    margin-top: 1.5rem;
+    padding: 1rem;
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #94a3b8;
+}
+
+.log-header {
+    border-bottom: 1px solid var(--card-border);
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: var(--text-primary);
+}
+
+.log-content {
+    max-height: 150px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
+
+.log-entry {
+    margin-bottom: 4px;
+}
+
+.log-entry.error { color: #ef4444; }
+.log-entry.success { color: #10b981; }
+.log-entry.info { color: #4facfe; }
