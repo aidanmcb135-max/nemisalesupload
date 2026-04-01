@@ -70,8 +70,14 @@ class DataLoader {
             };
 
             const transactionDate = getVal(['transaction date', 'date', 'trans date']);
-            // User requested to use Memo/Description instead of Product/Service for the product name
-            const productSold = getVal(['memo/description', 'memo', 'description', 'product/service', 'product', 'item']);
+            // Read Description and Product/Service as SEPARATE columns
+            // Prefer Description over Product/Service for the display name
+            const descriptionCol = getVal(['memo/description', 'memo', 'description']);
+            const productServiceCol = getVal(['product/service', 'product/service full name', 'product', 'item']);
+            // Use description if available, otherwise fall back to product/service code
+            const productSold = (descriptionCol && String(descriptionCol).trim()) 
+                ? String(descriptionCol).trim() 
+                : (productServiceCol ? String(productServiceCol).trim() : null);
             const quantity = getVal(['quantity', 'qty']);
             const amount = getVal(['amount', 'revenue', 'value']);
             const invoiceNo = String(getVal(['no.', 'invoice', 'inv']) || '').trim();
