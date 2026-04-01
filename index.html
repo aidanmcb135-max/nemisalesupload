@@ -84,21 +84,22 @@
                 </div>
             </div>
 
-            <!-- Charts Section -->
+            <!-- Charts Section 1 -->
             <div class="charts-grid top-charts">
                 <div class="chart-card">
-                    <div class="card-header">REVENUE BY MONTH</div>
+                    <div class="card-header">REVENUE OVER TIME</div>
                     <div class="chart-container"><canvas id="revenueChart"></canvas></div>
                 </div>
                 <div class="chart-card">
-                    <div class="card-header">SALES VOLUME BY MONTH</div>
+                    <div class="card-header">SALES VOLUME BY QUARTER</div>
                     <div class="chart-container"><canvas id="volumeChart"></canvas></div>
                 </div>
             </div>
 
+            <!-- Charts Section 2 -->
             <div class="charts-grid bottom-charts">
                 <div class="chart-card">
-                    <div class="card-header">TOP CUSTOMERS BY REVENUE</div>
+                    <div class="card-header">TOP 10 CUSTOMERS BY REVENUE</div>
                     <div class="chart-container"><canvas id="customerChart"></canvas></div>
                 </div>
                 <div class="chart-card">
@@ -106,6 +107,49 @@
                     <div class="chart-container donut-container"><canvas id="productChart"></canvas></div>
                 </div>
             </div>
+
+            <!-- Enhanced Analytics Section -->
+            <h2 class="section-divider">Detailed Product Analytics</h2>
+            
+            <div class="charts-grid top-charts">
+                <div class="chart-card chart-card-tall">
+                    <div class="card-header">TOP 20 PRODUCTS (BY UNITS SOLD)</div>
+                    <div class="chart-container chart-tall"><canvas id="top20Chart"></canvas></div>
+                </div>
+                <div class="chart-card chart-card-tall">
+                    <div class="card-header">TOP 10 PRODUCTS OVER TIME</div>
+                    <div class="chart-container chart-tall"><canvas id="top10TrendsChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Frequency & Churn Section -->
+            <h2 class="section-divider">Customer Activity & Retention</h2>
+
+            <div class="tables-grid">
+                <!-- Churn Analysis -->
+                <div class="chart-card churn-card">
+                    <div class="card-header churn-header-critical">CHURN RISK (NO ORDERS IN 90+ DAYS)</div>
+                    <div class="list-container" id="churn90List">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+                <div class="chart-card churn-card">
+                    <div class="card-header churn-header-warning">DORMANT (NO ORDERS IN 60-89 DAYS)</div>
+                    <div class="list-container" id="churn60List">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-card full-width-card mt-6">
+                <div class="card-header">CUSTOMER ORDER FREQUENCY (UNIQUE INVOICES PER MONTH)</div>
+                <div class="table-container">
+                    <table class="freq-table" id="frequencyTable">
+                        <!-- Populated by JS -->
+                    </table>
+                </div>
+            </div>
+
         </section>
     </div>
 
