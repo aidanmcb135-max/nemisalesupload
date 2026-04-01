@@ -67,7 +67,7 @@ class DataLoader {
 
             let customer = getVal(['customer', 'client', 'name']);
             const transactionDate = getVal(['transaction date', 'date', 'trans date']);
-            const productSold = getVal(['product sold', 'product', 'item']);
+            const productSold = getVal(['product/service', 'product', 'item']);
             const quantity = getVal(['quantity', 'qty']);
             const amount = getVal(['amount', 'revenue', 'value']);
 
