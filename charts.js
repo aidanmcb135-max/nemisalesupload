@@ -7,6 +7,8 @@ class ChartManager {
         this.volumeChart = null;
         this.customerChart = null;
         this.productChart = null;
+        this.top20Chart = null;
+        this.top10TrendsChart = null;
         
         // Setup Chart.js global defaults for Base44 light theme
         Chart.defaults.color = '#6B7280';
@@ -28,7 +30,6 @@ class ChartManager {
 
         if (this.revenueChart) this.revenueChart.destroy();
 
-        // Create a gradient for the line graph
         const gradient = ctx.createLinearGradient(0, 0, 0, 300);
         gradient.addColorStop(0, 'rgba(44, 110, 73, 0.2)');
         gradient.addColorStop(1, 'rgba(44, 110, 73, 0.0)');
@@ -64,29 +65,21 @@ class ChartManager {
                     }
                 },
                 scales: {
-                    x: {
-                        grid: { display: false }
-                    },
+                    x: { grid: { display: false } },
                     y: {
-                        grid: {
-                            color: '#E5E7EB',
-                            drawBorder: false,
-                            borderDash: [5, 5]
-                        },
+                        grid: { color: '#E5E7EB', drawBorder: false, borderDash: [5, 5] },
                         beginAtZero: true,
-                        ticks: {
-                            callback: value => '£' + (value >= 1000 ? (value/1000) + 'k' : value)
-                        }
+                        ticks: { callback: value => '£' + (value >= 1000 ? (value/1000) + 'k' : value) }
                     }
                 }
             }
         });
     }
 
-    renderVolumeChart(monthlyData) {
+    renderVolumeChart(quarterlyData) {
         const ctx = document.getElementById('volumeChart').getContext('2d');
-        const labels = monthlyData.map(d => d.month);
-        const data = monthlyData.map(d => d.quantity);
+        const labels = quarterlyData.map(d => d.quarter);
+        const data = quarterlyData.map(d => d.quantity);
 
         if (this.volumeChart) this.volumeChart.destroy();
 
@@ -104,9 +97,7 @@ class ChartManager {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
+                plugins: { legend: { display: false } },
                 scales: {
                     x: { grid: { display: false } },
                     y: {
@@ -158,13 +149,8 @@ class ChartManager {
     renderProductChart(productData) {
         const ctx = document.getElementById('productChart').getContext('2d');
         
-        // Base44 greens palette
-        const palette = [
-            '#215237', '#2c6e49', '#3b8258', '#4c9568', 
-            '#60a97a', '#77bc8d', '#90cfa2', '#aee2b7'
-        ];
+        const palette = ['#215237', '#2c6e49', '#3b8258', '#4c9568', '#60a97a', '#77bc8d', '#90cfa2', '#aee2b7', '#c9efd9'];
         
-        // Take top 8 products, combine rest into "Other"
         let displayData = [];
         if (productData.length > 8) {
             displayData = productData.slice(0, 7);
@@ -176,6 +162,7 @@ class ChartManager {
 
         const labels = displayData.map(d => d.product);
         const data = displayData.map(d => d.revenue);
+        const totalRev = data.reduce((a, b) => a + b, 0);
 
         if (this.productChart) this.productChart.destroy();
 
@@ -193,20 +180,98 @@ class ChartManager {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                cutout: '70%',
+                cutout: '65%',
                 plugins: {
                     legend: {
-                        position: 'bottom',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 20,
-                            font: { size: 11 }
-                        }
+                        position: 'right',
+                        labels: { usePointStyle: true, padding: 15, font: { size: 11 } }
                     },
                     tooltip: {
                         callbacks: {
-                            label: (context) => ' £' + context.parsed.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})
+                            label: (context) => {
+                                const val = context.parsed;
+                                const pct = ((val / totalRev) * 100).toFixed(1);
+                                return ` ${pct}% (£${val.toLocaleString(undefined, {minimumFractionDigits: 2})})`;
+                            }
                         }
+                    }
+                }
+            }
+        });
+    }
+
+    renderTop20Products(productData) {
+        const ctx = document.getElementById('top20Chart').getContext('2d');
+        const labels = productData.map(d => d.product);
+        const data = productData.map(d => d.quantity);
+
+        if (this.top20Chart) this.top20Chart.destroy();
+
+        this.top20Chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Units Sold',
+                    data: data,
+                    backgroundColor: '#4c9568',
+                    borderRadius: 4,
+                    barThickness: 'flex',
+                    maxBarThickness: 16
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: '#E5E7EB', drawBorder: false, borderDash: [5, 5] }, beginAtZero: true },
+                    y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+                }
+            }
+        });
+    }
+
+    renderTop10Trends(trendData) {
+        const ctx = document.getElementById('top10TrendsChart').getContext('2d');
+        
+        const palette = [
+            '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', 
+            '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
+        ];
+
+        // Apply colors and styling to datasets
+        trendData.datasets.forEach((ds, i) => {
+            ds.borderColor = palette[i % palette.length];
+            ds.backgroundColor = palette[i % palette.length];
+            ds.borderWidth = 2;
+            ds.pointRadius = 3;
+            ds.pointHoverRadius = 5;
+            ds.fill = false;
+            ds.tension = 0.3;
+        });
+
+        if (this.top10TrendsChart) this.top10TrendsChart.destroy();
+
+        this.top10TrendsChart = new Chart(ctx, {
+            type: 'line',
+            data: trendData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { usePointStyle: true, boxWidth: 8, font: { size: 10 } }
+                    },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        grid: { color: '#E5E7EB', drawBorder: false, borderDash: [5, 5] },
+                        beginAtZero: true
                     }
                 }
             }
