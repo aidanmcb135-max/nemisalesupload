@@ -77,16 +77,26 @@ class DataLoader {
                 return null;
             }
 
-            // FORWARD FILL CUSTOMER: If customer is blank, use the one from above
+            // FORWARD FILL CUSTOMER
             if (customer && String(customer).trim().length > 0) {
                 lastCustomer = String(customer).trim();
             } else if (transactionDate) {
                 customer = lastCustomer;
             }
 
+            // DATE PARSING: Handle Excel Dates vs String DD/MM/YYYY
+            let dateObj = transactionDate;
+            if (typeof transactionDate === 'string' && transactionDate.includes('/')) {
+                const parts = transactionDate.split('/');
+                if (parts.length === 3) {
+                    // Create date from DD/MM/YYYY
+                    dateObj = new Date(parts[2], parts[1] - 1, parts[0]);
+                }
+            }
+
             return {
                 customer: customer || 'Unknown',
-                transactionDate, // JS Date object or string
+                transactionDate: dateObj,
                 productSold,
                 quantity: parseNumber(quantity),
                 amount: parseNumber(amount)
