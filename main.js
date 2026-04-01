@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dashboard = document.getElementById('dashboard');
     const debugLog = document.getElementById('debugLog');
     const logContent = document.getElementById('logContent');
-    
+
     function log(message, type = 'info') {
         const entry = document.createElement('div');
         entry.className = `log-entry ${type}`;
@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     dropzone.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', function() { if (this.files.length) handleFiles(this.files[0]); });
+    fileInput.addEventListener('change', function () { if (this.files.length) handleFiles(this.files[0]); });
 
     async function handleFiles(file) {
         if (!file.name.match(/\.(xlsx|xls)$/)) {
@@ -56,21 +56,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             log(`Analyzing ${rawData.length} valid sales records...`, 'success');
             uploadStatus.textContent = `Successfully processed ${rawData.length} rows.`;
-            
+
             const analyzer = new DataAnalyzer(rawData);
-            
+
             // 1. Dashboard Metrics
             updateDashboardMetrics(analyzer);
-            
+
             // 2. Main Charts
             chartManager.renderRevenueChart(analyzer.getRevenueByMonth());
             chartManager.renderVolumeChart(analyzer.getVolumeByQuarter());
             chartManager.renderCustomerChart(analyzer.getRevenueByCustomer());
             chartManager.renderProductChart(analyzer.getRevenueByProduct());
 
-            // 3. Boss V2 Charts
-            chartManager.renderTop20Products(analyzer.getTopProductsByQuantity(20));
-            chartManager.renderTop10Trends(analyzer.getTop10ProductTrends());
+            // 3. Boss V2 Charts (rendered as standalone functions to avoid caching issues)
+            renderTop20Chart(analyzer.getTopProductsByQuantity(20));
+            renderTop10TrendsChart(analyzer.getTop10ProductTrends());
 
             // 4. Tables and Lists
             renderFrequencyTable(analyzer.getCustomerFrequencyTable());
@@ -87,20 +87,101 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ---- TOP 20 PRODUCTS CHART (standalone) ----
+    let _top20Chart = null;
+    function renderTop20Chart(productData) {
+        const ctx = document.getElementById('top20Chart').getContext('2d');
+        const labels = productData.map(d => d.product);
+        const data = productData.map(d => d.quantity);
+
+        if (_top20Chart) _top20Chart.destroy();
+
+        _top20Chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Units Sold',
+                    data: data,
+                    backgroundColor: '#4c9568',
+                    borderRadius: 4,
+                    barThickness: 'flex',
+                    maxBarThickness: 16
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: '#E5E7EB', drawBorder: false, borderDash: [5, 5] }, beginAtZero: true },
+                    y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+                }
+            }
+        });
+    }
+
+    // ---- TOP 10 PRODUCT TRENDS CHART (standalone) ----
+    let _top10TrendsChart = null;
+    function renderTop10TrendsChart(trendData) {
+        const ctx = document.getElementById('top10TrendsChart').getContext('2d');
+
+        const palette = [
+            '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+            '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
+        ];
+
+        trendData.datasets.forEach((ds, i) => {
+            ds.borderColor = palette[i % palette.length];
+            ds.backgroundColor = palette[i % palette.length];
+            ds.borderWidth = 2;
+            ds.pointRadius = 3;
+            ds.pointHoverRadius = 5;
+            ds.fill = false;
+            ds.tension = 0.3;
+        });
+
+        if (_top10TrendsChart) _top10TrendsChart.destroy();
+
+        _top10TrendsChart = new Chart(ctx, {
+            type: 'line',
+            data: trendData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { usePointStyle: true, boxWidth: 8, font: { size: 10 } }
+                    },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        grid: { color: '#E5E7EB', drawBorder: false, borderDash: [5, 5] },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
     function updateDashboardMetrics(analyzer) {
         const colFormatter = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 });
 
         document.getElementById('val-revenue').textContent = colFormatter.format(analyzer.getTotalRevenue());
         document.getElementById('sub-revenue').textContent = `${analyzer.getTotalTransactions().toLocaleString()} orders processed`;
-        
+
         const bestMonth = analyzer.getBestSalesMonth();
         document.getElementById('val-best-month').textContent = bestMonth.month !== '-' ? bestMonth.month : '-';
         document.getElementById('sub-best-month').textContent = `${colFormatter.format(bestMonth.revenue || 0)} revenue`;
-        
+
         const topProduct = analyzer.getTopProductsByQuantity(1)[0] || { product: '-', quantity: 0 };
         document.getElementById('val-top-product').textContent = topProduct.product;
         document.getElementById('sub-top-product').textContent = `${(topProduct.quantity || 0).toLocaleString()} units sold`;
-        
+
         document.getElementById('val-total-customers').textContent = analyzer.getTotalCustomers().toLocaleString();
     }
 
@@ -137,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderChurnLists(churnData) {
         const list90 = document.getElementById('churn90List');
         const list60 = document.getElementById('churn60List');
-        
+
         list90.innerHTML = '';
         list60.innerHTML = '';
 
