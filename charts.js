@@ -97,4 +97,51 @@ class ChartManager {
             }
         });
     }
+
+    renderCustomerChart(customerData) {
+        const ctx = document.getElementById('customerChart').getContext('2d');
+        
+        // Show top 10 customers
+        const top10 = customerData.slice(0, 10);
+        const labels = top10.map(d => d.name);
+        const data = top10.map(d => d.revenue);
+
+        if (this.customerChart) {
+            this.customerChart.destroy();
+        }
+
+        this.customerChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Total Revenue',
+                    data: data,
+                    backgroundColor: 'rgba(79, 172, 254, 0.6)',
+                    borderColor: '#4facfe',
+                    borderWidth: 1,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                indexAxis: 'y', // Makes it a horizontal bar chart
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false },
+                        ticks: {
+                            callback: value => '$' + value.toLocaleString()
+                        }
+                    },
+                    y: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
 }

@@ -83,7 +83,6 @@ class DataAnalyzer {
         let maxQty = 0;
 
         for (const [product, stats] of Object.entries(products)) {
-            // Using quantity as the metric for "top selling", as requested
             if (stats.quantity > maxQty) {
                 maxQty = stats.quantity;
                 topProduct = product;
@@ -91,5 +90,19 @@ class DataAnalyzer {
         }
 
         return { product: topProduct, quantity: maxQty };
+    }
+
+    getRevenueByCustomer() {
+        const customers = {};
+        this.data.forEach(row => {
+            const name = row.customer || 'Unknown';
+            if (!customers[name]) customers[name] = 0;
+            customers[name] += row.amount;
+        });
+
+        // Convert to sorted array
+        return Object.keys(customers)
+            .map(name => ({ name, revenue: customers[name] }))
+            .sort((a, b) => b.revenue - a.revenue);
     }
 }

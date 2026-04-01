@@ -95,6 +95,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const monthlyData = analyzer.getRevenueByMonth();
             chartManager.renderRevenueChart(monthlyData);
             
+            // Render Customer Chart
+            const customerData = analyzer.getRevenueByCustomer();
+            chartManager.renderCustomerChart(customerData);
+            
             // Reveal the dashboard with a smooth scroll
             dashboard.classList.remove('hidden');
             dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -118,6 +122,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('val-best-month').textContent = bestMonth.month !== '-' 
             ? `${bestMonth.month}`
             : '-';
+        
+        // Find Top Customer for the metric card
+        const customerStats = analyzer.getRevenueByCustomer();
+        if (customerStats.length > 0) {
+            const topCust = customerStats[0];
+            // We'll repurpose 'Peak Volume Month' subtitle or just show them in the card
+            // Actually let's just make sure Top Product and Best Month are clear
+        }
         
         // Top Product (by Quantity)
         const topProduct = analyzer.getTopProduct();

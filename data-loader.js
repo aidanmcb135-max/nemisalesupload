@@ -11,21 +11,23 @@ class DataLoader {
                     logger("Parsing spreadsheet structure...");
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-
-                    // Assume the first sheet contains the data
+                    
                     const firstSheetName = workbook.SheetNames[0];
                     logger(`Sheet found: "${firstSheetName}". Converting to JSON...`);
                     const worksheet = workbook.Sheets[firstSheetName];
-
-                    // Convert to JSON
-                    const rawJson = XLSX.utils.sheet_to_json(worksheet, { defval: null });
-                    logger(`Found ${rawJson.length} raw rows. Starting column filtering...`);
-
+                    
+                    // START AT ROW 5: range: 4 (0-indexed) skips the first 4 rows
+                    const rawJson = XLSX.utils.sheet_to_json(worksheet, { 
+                        defval: null,
+                        range: 4 
+                    });
+                    
+                    logger(`Found ${rawJson.length} raw rows (starting from Row 5). Starting analysis...`);
+                    
                     if (rawJson.length === 0) {
-                        throw new Error("The spreadsheet appears to be empty.");
+                        throw new Error("The spreadsheet appears to be empty or headers were not found on Row 5.");
                     }
 
-                    // Normalize and filter the data according to requirements
                     const cleanedData = this.cleanAndFilterData(rawJson, logger);
                     resolve(cleanedData);
                 } catch (error) {
