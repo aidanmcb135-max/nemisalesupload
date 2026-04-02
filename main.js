@@ -218,23 +218,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderChurnLists(churnData) {
-        const list90 = document.getElementById('churn90List');
+        const list30 = document.getElementById('churn30List');
         const list60 = document.getElementById('churn60List');
+        const list90 = document.getElementById('churn90List');
+        const list180 = document.getElementById('churn180List');
 
-        list90.innerHTML = '';
+        list30.innerHTML = '';
         list60.innerHTML = '';
+        list90.innerHTML = '';
+        list180.innerHTML = '';
 
-        if (churnData.churned90.length === 0) list90.innerHTML = '<div class="no-data-msg">No high-risk accounts found.</div>';
+        if (churnData.churned30.length === 0) list30.innerHTML = '<div class="no-data-msg">No at-risk accounts found.</div>';
         if (churnData.churned60.length === 0) list60.innerHTML = '<div class="no-data-msg">No dormant accounts found.</div>';
+        if (churnData.churned90.length === 0) list90.innerHTML = '<div class="no-data-msg">No high-risk accounts found.</div>';
+        if (churnData.churned180.length === 0) list180.innerHTML = '<div class="no-data-msg">No lost accounts found.</div>';
 
-        churnData.churned90.forEach(c => {
+        churnData.churned30.forEach(c => {
             const dateStr = c.lastOrder.toLocaleDateString();
-            list90.innerHTML += `<div class="churn-item"><span class="churn-name">${c.customer}</span><span class="churn-days">${c.daysSince} days ago (${dateStr})</span></div>`;
+            list30.innerHTML += `<div class="churn-item"><span class="churn-name">${c.customer}</span><span class="churn-days">${c.daysSince} days (${dateStr})</span></div>`;
         });
 
         churnData.churned60.forEach(c => {
             const dateStr = c.lastOrder.toLocaleDateString();
-            list60.innerHTML += `<div class="churn-item"><span class="churn-name">${c.customer}</span><span class="churn-days">${c.daysSince} days ago (${dateStr})</span></div>`;
+            list60.innerHTML += `<div class="churn-item"><span class="churn-name">${c.customer}</span><span class="churn-days">${c.daysSince} days (${dateStr})</span></div>`;
+        });
+
+        churnData.churned90.forEach(c => {
+            const dateStr = c.lastOrder.toLocaleDateString();
+            list90.innerHTML += `<div class="churn-item"><span class="churn-name">${c.customer}</span><span class="churn-days">${c.daysSince} days (${dateStr})</span></div>`;
+        });
+
+        churnData.churned180.forEach(c => {
+            const dateStr = c.lastOrder.toLocaleDateString();
+            list180.innerHTML += `<div class="churn-item"><span class="churn-name">${c.customer}</span><span class="churn-days">${c.daysSince} days (${dateStr})</span></div>`;
         });
     }
 });

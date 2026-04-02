@@ -8,7 +8,7 @@
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Styles -->
-    <link rel="stylesheet" href="styles.css?v=5">
+    <link rel="stylesheet" href="styles.css?v=8">
     <!-- Chart.js & SheetJS -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -131,17 +131,29 @@
             <!-- Frequency & Churn Section -->
             <h2 class="section-divider">Customer Activity & Retention</h2>
 
-            <div class="tables-grid">
+            <div class="tables-grid tables-grid-4">
                 <!-- Churn Analysis -->
                 <div class="chart-card churn-card">
-                    <div class="card-header churn-header-critical">CHURN RISK (NO ORDERS IN 90+ DAYS)</div>
+                    <div class="card-header churn-header-info">AT RISK (30-59 DAYS)</div>
+                    <div class="list-container" id="churn30List">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+                <div class="chart-card churn-card">
+                    <div class="card-header churn-header-warning">DORMANT (60-89 DAYS)</div>
+                    <div class="list-container" id="churn60List">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+                <div class="chart-card churn-card">
+                    <div class="card-header churn-header-critical">CHURN RISK (90-180 DAYS)</div>
                     <div class="list-container" id="churn90List">
                         <!-- Populated by JS -->
                     </div>
                 </div>
                 <div class="chart-card churn-card">
-                    <div class="card-header churn-header-warning">DORMANT (NO ORDERS IN 60-89 DAYS)</div>
-                    <div class="list-container" id="churn60List">
+                    <div class="card-header churn-header-lost">LOST (180+ DAYS)</div>
+                    <div class="list-container" id="churn180List">
                         <!-- Populated by JS -->
                     </div>
                 </div>
@@ -160,10 +172,10 @@
     </div>
 
     <!-- Scripts -->
-    <script src="data-loader.js?v=6"></script>
-    <script src="analyzer.js?v=6"></script>
-    <script src="charts.js?v=6"></script>
-    <script src="main.js?v=6"></script>
+    <script src="data-loader.js?v=8"></script>
+    <script src="analyzer.js?v=8"></script>
+    <script src="charts.js?v=8"></script>
+    <script src="main.js?v=8"></script>
 </body>
 
 </html>

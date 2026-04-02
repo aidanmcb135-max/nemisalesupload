@@ -5,7 +5,7 @@ class DataAnalyzer {
     constructor(data) {
         this.data = data;
         this.maxDate = new Date(0);
-        
+
         // Setup Date and Month parsing
         this.data.forEach(row => {
             if (!(row.transactionDate instanceof Date)) {
@@ -21,7 +21,7 @@ class DataAnalyzer {
 
                 row.monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                 row.monthLabel = d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
-                
+
                 // Quarter logic
                 const q = Math.floor(d.getMonth() / 3) + 1;
                 row.quarterKey = `${d.getFullYear()}-Q${q}`;
@@ -84,7 +84,7 @@ class DataAnalyzer {
         this.data.forEach(row => {
             const prodText = String(row.productSold || 'Unknown').trim();
             if (prodText === 'Other / Deposit' || !prodText) return;
-            
+
             if (!products[prodText]) products[prodText] = 0;
             products[prodText] += row.quantity;
         });
@@ -98,10 +98,10 @@ class DataAnalyzer {
     getTop10ProductTrends() {
         // 1. Get Top 10 Products by Quantity
         const top10 = this.getTopProductsByQuantity(10).map(p => p.product);
-        
+
         // 2. Get all distinct sorted months
         const allMonths = this.getRevenueByMonth().map(m => m.monthKey);
-        
+
         // 3. Initialize mapping array for each product
         const trends = {};
         top10.forEach(p => {
@@ -165,7 +165,7 @@ class DataAnalyzer {
     getCustomerFrequencyTable() {
         // We want to count UNIQUE invoices per customer per month
         const frequencyMap = {};
-        
+
         this.data.forEach(row => {
             const customer = row.customer || 'Unknown';
             const mKey = row.monthKey;
@@ -175,12 +175,12 @@ class DataAnalyzer {
 
             if (!frequencyMap[customer]) frequencyMap[customer] = {};
             if (!frequencyMap[customer][mKey]) frequencyMap[customer][mKey] = new Set();
-            
+
             frequencyMap[customer][mKey].add(invoice);
         });
 
         const allMonths = this.getRevenueByMonth().map(m => ({ label: m.month, key: m.monthKey }));
-        
+
         const tableData = Object.keys(frequencyMap).map(customer => {
             const rowObj = { customer };
             let totalInvoices = 0;
@@ -205,30 +205,37 @@ class DataAnalyzer {
             const customer = row.customer || 'Unknown';
             const d = row.transactionDate;
             if (isNaN(d.getTime())) return;
-            
+
             if (!customerDates[customer] || d > customerDates[customer]) {
                 customerDates[customer] = d;
             }
         });
 
-        // Max date in the dataset (represents "today" for the sheet)
         const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
-        const churned60 = [];
-        const churned90 = [];
+        const churned30 = [];   // 30-59 days
+        const churned60 = [];   // 60-89 days
+        const churned90 = [];   // 90-180 days
+        const churned180 = [];  // 180+ days
 
         Object.keys(customerDates).forEach(customer => {
             const diffDays = Math.floor((this.maxDate - customerDates[customer]) / MS_PER_DAY);
-            if (diffDays >= 90) {
+            if (diffDays > 180) {
+                churned180.push({ customer, lastOrder: customerDates[customer], daysSince: diffDays });
+            } else if (diffDays >= 90) {
                 churned90.push({ customer, lastOrder: customerDates[customer], daysSince: diffDays });
             } else if (diffDays >= 60) {
                 churned60.push({ customer, lastOrder: customerDates[customer], daysSince: diffDays });
+            } else if (diffDays >= 30) {
+                churned30.push({ customer, lastOrder: customerDates[customer], daysSince: diffDays });
             }
         });
 
         return {
-            churned60: churned60.sort((a,b) => b.daysSince - a.daysSince),
-            churned90: churned90.sort((a,b) => b.daysSince - a.daysSince)
+            churned30: churned30.sort((a, b) => b.daysSince - a.daysSince),
+            churned60: churned60.sort((a, b) => b.daysSince - a.daysSince),
+            churned90: churned90.sort((a, b) => b.daysSince - a.daysSince),
+            churned180: churned180.sort((a, b) => b.daysSince - a.daysSince)
         };
     }
 }
